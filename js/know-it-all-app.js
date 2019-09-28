@@ -168,7 +168,7 @@ window.onload = function () {
     
     var bkg_img = new Image();
     //background.src = "/know-it-all/favicon.png";  
-    bkg_img.src = $('#__baseurl').className + "/favicon.png";
+    bkg_img.src = $('#__baseurl').attr('class') + "/favicon.png";
 
     bkg_img.onload = function() {
         // only do background once loaded

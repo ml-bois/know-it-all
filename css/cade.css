@@ -4,6 +4,7 @@
     max-width: 100vw;
     height: 100vh;
     padding: 0em;
+    overflow: hidden;
 }
 
 #renderer_div {
@@ -20,8 +21,6 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
-
-
 
 /* generic elements */
 html, body{

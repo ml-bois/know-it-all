@@ -3,17 +3,18 @@ layout: default
 make-smaller-titles: true
 ---
 
-<script src="{{ site.baseurl }}/js/jquery-3.4.1.min.js"></script>
-<script src="{{ site.baseurl }}/js/knowitall.js"></script>
+<!--
 
-<div id="renderer_container" class="container-fluid index">
+    Main page where you can speak to the know-it-all bot
+    
+-->
 
-        <div id="renderer_div" class="col-md-12 main content-panel">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="{{ site.baseurl }}/js/know-it-all-app.js"></script>
 
-            <!--img id="brain_img" src="{{ site.title_image }}" class="img-circle about-image" height="150" width="150" alt="{{ site.title }}" />-->
-
-            <canvas id="renderer" class="renderer-canvas"></canvas>
-            
+<div id="renderer_container" class="container-fluid">
+    <div id="renderer_div" class="content-panel">
+        <canvas id="renderer"></canvas>
     </div>
 </div>
 

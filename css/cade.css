@@ -1,67 +1,36 @@
 
 
 #renderer_container {
-  max-width: 100vw;
-  height: 90vh;
-  padding: 2em 0 2em 0;
-
+    max-width: 100vw;
+    height: 100vh;
+    padding: 0em;
 }
 
 #renderer_div {
-  padding: 0px;
-  width: 100%;
-  height: 100%;
+    padding: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+#renderer {
+    display: inline-block;
+    margin: auto;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 
 
-.renderer-canvas {
-  display: inline-block;
-  margin: auto;
-}
-
-
-
+/* generic elements */
 html, body{
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  background-color:#222;
-  font-size: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    background-color:#222;
+    font-size: 0;
 }
 
-svg{
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  position:absolute;
 
-}
-
-h1 {
-  width: 100%;
-  font-family: sans-serif;
-  position:absolute;
-  text-align:center;
-  color:white;
-  font-size: 18px;
-  top: 40%;
-  opacity: 1;
-  transition: opacity 1s ease-in-out;
-  -moz-transition: opacity 1s ease-in-out;
-  -webkit-transition: opacity 1s ease-in-out;
-}
-
-h1 a{
-  color: #48b1f4;
-  text-decoration:none;
-}
-
-path{
-  stroke-linecap: square;
-  stroke: white;
-  stroke-width: 0.5px;
-}

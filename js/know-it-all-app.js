@@ -108,7 +108,7 @@ function drawFrame() {
     // sets us up for the next frame
     requestAnimationFrame(drawFrame);
 
-    console.log("drawing frame...");
+    //console.log("drawing frame...");
 
     analyzers["user"].getByteFrequencyData(freq_data["user"]);
     analyzers["machine"].getByteFrequencyData(freq_data["machine"]);
@@ -165,6 +165,7 @@ function drawFrame() {
 
 
 window.onload = function () {
+
     canvas_div = $('#renderer_div');
     canvas = $('#renderer')[0];
     
@@ -221,7 +222,9 @@ window.onload = function () {
         console.log(error);
     }
 
-    navigator.mediaDevices.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
+    console.log("on load");
+
+    navigator.mediaDevices.getUserMedia({ audio:true }).then(soundAllowed).catch(soundNotAllowed);
     //navigator.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
 };
 

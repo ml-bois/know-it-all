@@ -1,0 +1,20 @@
+# Site settings
+title: "Know It All"
+email: cade@cade.site
+description: "AI 1-upper"
+baseurl: ""
+url: "http://chemicaldevelopment.us/knowitall"
+title_description: "A dark blog theme for Jekyll focusing on a clear reading experience. Large text and a narrow body makes carte noire a gorgeous read. With excellent code snippet support and integrated tools such as AddThis and Disqus giving your Jekyll blog all the functionality your users expect."
+title_image: "/favicon.png"
+
+github_repository: https://github.com/ChemicalDevelopment/KnowItAllApp
+
+# Build settings
+markdown: kramdown
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+permalink: pretty
+exclude: [vendor]

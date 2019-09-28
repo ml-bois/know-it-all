@@ -166,10 +166,9 @@ window.onload = function () {
     canvas_div = $('#renderer_div');
     canvas = $('#renderer')[0];
     
-
     var bkg_img = new Image();
     //background.src = "/know-it-all/favicon.png";  
-    bkg_img.src = "/favicon.png";
+    bkg_img.src = $('#__baseurl').className + "/favicon.png";
 
     bkg_img.onload = function() {
         // only do background once loaded

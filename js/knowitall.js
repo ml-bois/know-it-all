@@ -3,26 +3,23 @@ window.onload = function () {
     var canvas_div = $('#renderer_div');
     var canvas = $('#renderer')[0];
 
-    canvas.width =  canvas_div.innerWidth();
-    canvas.height =  canvas_div.innerHeight();
-
-
     var background = new Image();
     background.src = "/know-it-all/favicon.png";
+    //background.src = "/favicon.png";
 
     var bkg_enabled = false;
+    var audioCtx;
+
+    var arc_color = "rgb(0, 0, 205)";
 
     background.onload = function() {
         bkg_enabled = true;
     }
 
     var ctx = canvas.getContext('2d');
-
     var bars = 120;
-    var r_inner = 160;
-    var r_outer = 400;
-
-    var x_c = canvas.width / 2, y_c = canvas.height / 2;
+    var r_inner, r_outer;
+    var x_c, y_c;
 
     var transform_val = function (v) {
         return Math.sign(v) * Math.pow(Math.abs(v), 1.2);
@@ -34,7 +31,11 @@ window.onload = function () {
         var rads = 2 * Math.PI * idx / bars + Math.PI / 2;
 
         var cosr = Math.cos(rads), sinr = Math.sin(rads);
-        var scale = (r_inner + (r_outer - r_inner) * transform_val(amount / 255));
+        var scale = transform_val(amount / 255);
+
+        if (idx < bars * 0.12) scale = 0.5 * scale + 0.5 * scale * idx / (bars * 0.12);
+
+        scale = (r_inner + (r_outer - r_inner) * scale);
 
         ctx.strokeStyle = lineColor;
         ctx.lineWidth = 2;
@@ -50,9 +51,9 @@ window.onload = function () {
         //https://support.mozilla.org/en-US/questions/984179
         window.persistAudioStream = stream;
 
-        var audioContent = new AudioContext();
-        var audioStream = audioContent.createMediaStreamSource( stream );
-        var analyser = audioContent.createAnalyser();
+        audioCtx = new AudioContext();
+        var audioStream = audioCtx.createMediaStreamSource( stream );
+        var analyser = audioCtx.createAnalyser();
         audioStream.connect(analyser);
         analyser.fftSize = 512;
 
@@ -72,13 +73,23 @@ window.onload = function () {
 
             analyser.getByteFrequencyData(frequencyArray);
 
+            canvas.width = canvas_div.innerWidth();
+            canvas.height = canvas_div.innerHeight();
+        
+            r_inner = 160 * canvas.width / 500;
+            r_outer = 400 * canvas.width / 500;
+        
+            x_c = canvas.width / 2, y_c = canvas.height / 2;
+
             // clear then draw
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
 
             var adj_width = 2 * r_inner;
 
             if (bkg_enabled) ctx.drawImage(background, canvas.width / 2 - adj_width / 2, canvas.height / 2- adj_width / 2, adj_width, adj_width);
+
+
+            ctx.strokeStyle = arc_color;
 
             // inner circle
             ctx.beginPath();

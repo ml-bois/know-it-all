@@ -1,7 +1,25 @@
 
-#renderer_div {
-  height: 800px;
+
+#renderer_container {
+  max-width: 100vw;
+  height: 90vh;
+  padding: 2em 0 2em 0;
+
 }
+
+#renderer_div {
+  padding: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+
+
+.renderer-canvas {
+  display: inline-block;
+  margin: auto;
+}
+
 
 
 html, body{

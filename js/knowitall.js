@@ -98,6 +98,8 @@ window.onload = function () {
         console.log(error);
     }
 
-    navigator.getUserMedia({audio:true}, soundAllowed, soundNotAllowed);
+    
+    navigator.mediaDevices.getUserMedia({audio:true}, soundAllowed, soundNotAllowed);
+    //navigator.getUserMedia({audio:true}, soundAllowed, soundNotAllowed);
 
 };

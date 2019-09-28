@@ -8,7 +8,7 @@ window.onload = function () {
 
 
     var background = new Image();
-    background.src = "/favicon.png";
+    background.src = "/know-it-all/favicon.png";
 
     var bkg_enabled = false;
 

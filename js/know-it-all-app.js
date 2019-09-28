@@ -45,9 +45,10 @@ var audio_objs = {
 
     // can be undefined at runtime if there's not a chunk of audio!
     "response_audio": undefined
-}
+};
 
-
+// current recording envelope
+var envelope = 0.0;
 
 // audio analyzers
 var analyzers = {
@@ -69,12 +70,13 @@ function clamp(v, mi, ma) {
     return v < mi ? mi : (v > ma ? ma : v);
 }
 
+// transforms it for "prettier" vizualization
 function transformVal (val) {
     return Math.sign(val) * Math.pow(Math.abs(val), 1.2);
 }
 
 
-// draws single bar
+// draws single bar with a circular center, index (out of params.bars), min radius, to max radius, value (from 0 to 1) and a color
 function drawBar(center, idx, start_rad, end_rad, val, line_color) {
     var lineColor = "rgb(0, 0, 205)";
     
@@ -103,11 +105,10 @@ function drawBar(center, idx, start_rad, end_rad, val, line_color) {
 
 // draws a single frame
 function drawFrame() {
-
     // sets us up for the next frame
     requestAnimationFrame(drawFrame);
 
-    console.log("drawing frame...");
+    //console.log("drawing frame...");
 
     analyzers["user"].getByteFrequencyData(freq_data["user"]);
     analyzers["machine"].getByteFrequencyData(freq_data["machine"]);
@@ -128,6 +129,7 @@ function drawFrame() {
 
     var adj_width = 1.75 * radii["main"];
 
+    // only if the background imgae is loaded
     if (params["background"]) {
         // pixelated
         ctx.imageSmoothingEnabled = false;
@@ -139,6 +141,8 @@ function drawFrame() {
         ctx.drawImage(params["background"], canvas.width / 2 - adj_width / 2, canvas.height / 2- adj_width / 2, adj_width, adj_width);
     }
 
+
+    // draw radial frequency bars
     for (var i = 0; i < params["bars"]; ++i) {
         // draw user
         drawBar([c_x, c_y], i, radii["main"], radii["user"], freq_data["user"][i] / 255.0, params["user_color"]);
@@ -148,12 +152,10 @@ function drawFrame() {
     }
 
 
-    // draw the arc
-
+    // draw the arc/inner circle
     ctx.strokeStyle = params["arc_color"];
     ctx.lineWidth  = 4;
 
-    // inner circle
     ctx.beginPath();
     ctx.arc(c_x, c_y, radii["main"], 0, 2 * Math.PI);
     ctx.stroke();
@@ -201,7 +203,7 @@ window.onload = function () {
         freq_data["machine"] = new Uint8Array(analyzers["machine"].frequencyBinCount);
 
         // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
-        // snd.play();
+        //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
         audio_objs["response_audio"] = new Audio("/example.wav");
         audio_objs["response_audio"].play();
 

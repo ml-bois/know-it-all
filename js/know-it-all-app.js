@@ -17,9 +17,10 @@ var canvas, canvas_div, ctx;
 var params = {
     "bars": 120,
     "background": undefined,
-    "arc_color": "rgb(0, 0, 205)",
-    "user_color": "rgb(0, 205, 0)",
-    "machine_color": "rgb(205, 0, 0)"
+
+    "arc_color":     "rgb(  0,     0, 205)",
+    "user_color":    "rgb(  0,   205,   0)",
+    "machine_color": "rgb(205,     0,   0)"
 }
 
 
@@ -33,7 +34,6 @@ var radii = {
 
     // maximum of the inward peak (less than main)
     "machine": 0
-
 };
 
 
@@ -108,7 +108,7 @@ function drawFrame() {
     // sets us up for the next frame
     requestAnimationFrame(drawFrame);
 
-    //console.log("drawing frame...");
+    console.log("drawing frame...");
 
     analyzers["user"].getByteFrequencyData(freq_data["user"]);
     analyzers["machine"].getByteFrequencyData(freq_data["machine"]);
@@ -221,7 +221,7 @@ window.onload = function () {
         console.log(error);
     }
 
-    //navigator.mediaDevices.getUserMedia({audio:true}, soundAllowed, soundNotAllowed);
-    navigator.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
+    navigator.mediaDevices.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
+    //navigator.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
 };
 

@@ -20,6 +20,9 @@ var params = {
 
     "audio_bsize": 16384,
 
+    // output samplerate
+    "out_hz": 16000,
+
     "arc_color":     "rgb(  0,     0, 205)",
     "user_color":    "rgb(  0,   205,   0)",
     "machine_color": "rgb(205,     0,   0)"
@@ -59,6 +62,7 @@ var audio_objs = {
     // can be undefined at runtime if there's not a chunk of audio!
     "response_audio": undefined,
     "response_MES": undefined
+
 };
 
 // current recording envelope
@@ -203,7 +207,7 @@ window.onload = function () {
         // required for FireFox support
         window.persistAudioStream = audio_objs["stream_handle"];
 
-        audio_objs["context"] = new AudioContext();
+        audio_objs["context"] = new (AudioContext || webkitAudioContext)();
         audio_objs["stream_source"] = audio_objs["context"].createMediaStreamSource(audio_objs["stream_handle"]);
 
         analyzers["user"] = audio_objs["context"].createAnalyser();
@@ -233,17 +237,25 @@ window.onload = function () {
                 } 
             };
 
-
             audio_objs["stream_source"].connect(audio_objs["silence_detector"]);
             audio_objs["silence_detector"].connect(audio_objs["context"].destination);
 
-            audio_objs["recorder"] = new MediaRecorder(audio_objs["stream_handle"]);
+            audio_objs["recorder"] = new MediaRecorder(audio_objs["stream_handle"], {
+                'audioBitsPerSecond': 128000,
+                'sampleRate': 16000,
+                'desiredSampleRate': 16000,
+                'mimeType': 'audio/webm\;codecs=opus'
+            });
     
             // add function for when it is stopped
             audio_objs["recorder"].addEventListener("start", () => {
                 audio_objs["recorded_chunks"] = []
                 started_recording = new Date();
-                setTimeout(audio_objs["recorder"].stop, 15000);
+                setTimeout(function() {
+                    if (audio_objs["recorder"].state != 'inactive') {
+                        audio_objs["recorder"].stop();
+                    }
+                }, 15000);
             });
     
             // add function for when new data comes in
@@ -263,7 +275,10 @@ window.onload = function () {
                 if (audio_objs["recorded_chunks"].length == 1 && audio_objs["recorded_chunks"][0].size < 10000) return;
 
                 const _blob = new Blob(audio_objs["recorded_chunks"]);
+
+                console.log(audio_objs["recorded_chunks"]);
                 const _audio_url = URL.createObjectURL(_blob);
+        
                 //const audio = new Audio(_audio_url);
                 //audio.play();
 
@@ -289,6 +304,8 @@ window.onload = function () {
     
             // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
             //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
+
+           // setTimeout(function() { audio_objs["recorder"].stop(); }, 3000);
         
             drawFrame();
 

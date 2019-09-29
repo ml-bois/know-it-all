@@ -13,7 +13,6 @@ class SilenceDetector extends AudioWorkletProcessor {
         }
     }
 
- 
     process(inputs, outputs, params) {
         // this method gets automatically called with a buffer of 128 frames
         // audio process goes here
@@ -29,7 +28,7 @@ class SilenceDetector extends AudioWorkletProcessor {
         avg = avg / (samples.length / interval);
 
         //console.log(this);
-        this.__data["is_loud"] = avg > 0.1;
+        this.__data["is_loud"] = avg > 0.03;
         this.__data["confidence"] *= Math.pow(__decay_fac, samples.length / 44100.0);
         if (this.__data["is_loud"]) {
             this.__data["confidence"] += 0.9;

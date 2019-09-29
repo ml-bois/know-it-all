@@ -18,11 +18,19 @@ var params = {
     "bars": 120,
     "background": undefined,
 
+    "audio_bsize": 16384,
+
     "arc_color":     "rgb(  0,     0, 205)",
     "user_color":    "rgb(  0,   205,   0)",
     "machine_color": "rgb(205,     0,   0)"
 }
 
+
+var started_recording = new Date();
+
+var mem = {
+    "recording": false,
+};
 
 // radii of circles
 var radii = {
@@ -42,6 +50,11 @@ var audio_objs = {
     "context": undefined,
     "stream_handle": undefined,
     "stream_source": undefined,
+
+    "silence_detector": undefined,
+
+    "recorder": undefined,
+    "recorded_chunks": [],
 
     // can be undefined at runtime if there's not a chunk of audio!
     "response_audio": undefined
@@ -108,6 +121,8 @@ function drawFrame() {
     // sets us up for the next frame
     requestAnimationFrame(drawFrame);
 
+    //console.log(audio_objs["silence_detector"].is_loud);
+
     //console.log("drawing frame...");
 
     analyzers["user"].getByteFrequencyData(freq_data["user"]);
@@ -141,7 +156,6 @@ function drawFrame() {
         ctx.drawImage(params["background"], canvas.width / 2 - adj_width / 2, canvas.height / 2- adj_width / 2, adj_width, adj_width);
     }
 
-
     // draw radial frequency bars
     for (var i = 0; i < params["bars"]; ++i) {
         // draw user
@@ -150,7 +164,6 @@ function drawFrame() {
         // draw machine
         drawBar([c_x, c_y], i, radii["main"], radii["machine"], freq_data["machine"][i] / 255.0, params["machine_color"]);
     }
-
 
     // draw the arc/inner circle
     ctx.strokeStyle = params["arc_color"];
@@ -161,7 +174,6 @@ function drawFrame() {
     ctx.stroke();
 
 }
-
 
 
 window.onload = function () {
@@ -199,23 +211,84 @@ window.onload = function () {
 
         audio_objs["stream_source"].connect(analyzers["user"]);
 
-        // set up frequency bins
-        freq_data["user"] = new Uint8Array(analyzers["user"].frequencyBinCount);
-        freq_data["machine"] = new Uint8Array(analyzers["machine"].frequencyBinCount);
+        audio_objs["context"].audioWorklet.addModule('/js/silence-detector.js').then(function() { 
+            audio_objs["silence_detector"] = new AudioWorkletNode(audio_objs["context"], 'silence-detector', {
+                outputChannelCount:[1],
+                samples: params["audio_bsize"]
+            });
 
-        // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
-        //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
-        audio_objs["response_audio"] = new Audio("/example.wav");
-        audio_objs["response_audio"].play();
+            // this data will tell us whether or not to record or stop
+            audio_objs["silence_detector"].port.onmessage = function (e) {
+                if (audio_objs["recorder"].state == "inactive") {
+                    if (e.data["is_loud"]) {
+                        audio_objs["recorder"].start();
+                    } else {
+                        return;
+                    }
+                } else if (!e.data["is_loud"] && e.data["confidence"] < 0.32) {
+                    audio_objs["recorder"].stop();
+                } 
+            };
 
-        //media element source
-        audio_objs["respones_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
 
-        // connect to analyzer and output
-        audio_objs["respones_MES"].connect(analyzers["machine"]);
-        audio_objs["respones_MES"].connect(audio_objs["context"].destination);
+            audio_objs["stream_source"].connect(audio_objs["silence_detector"]);
+            audio_objs["silence_detector"].connect(audio_objs["context"].destination);
 
-        drawFrame();
+            audio_objs["recorder"] = new MediaRecorder(audio_objs["stream_handle"]);
+    
+            // add function for when it is stopped
+            audio_objs["recorder"].addEventListener("start", () => {
+                audio_objs["recorded_chunks"] = []
+                started_recording = new Date();
+                setTimeout(audio_objs["recorder"].stop, 15000);
+            });
+    
+            // add function for when new data comes in
+            audio_objs["recorder"].addEventListener("dataavailable", event => {
+                audio_objs["recorded_chunks"].push(event.data);
+            });
+    
+            // add function for when it is stopped
+            audio_objs["recorder"].addEventListener("stop", () => {
+                //console.log(audio_objs["recorded_chunks"]);
+
+                var time_elapsed = new Date() - started_recording;
+
+                // at least 1 second
+                if (time_elapsed < 1000) return;
+
+                if (audio_objs["recorded_chunks"].length < 1) return;
+
+                if (audio_objs["recorded_chunks"].length == 1 && audio_objs["recorded_chunks"][0].size < 10000) return;
+
+                const _blob = new Blob(audio_objs["recorded_chunks"]);
+                const _audio_url = URL.createObjectURL(_blob);
+                const audio = new Audio(_audio_url);
+                audio.play();
+            });
+    
+            // start recording
+            audio_objs["recorder"].start();
+    
+            // set up frequency bins
+            freq_data["user"] = new Uint8Array(analyzers["user"].frequencyBinCount);
+            freq_data["machine"] = new Uint8Array(analyzers["machine"].frequencyBinCount);
+    
+            // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
+            //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
+            //audio_objs["response_audio"] = new Audio("/example.wav");
+            //audio_objs["response_audio"].play();
+    
+            //media element source
+            audio_objs["respones_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
+    
+            // connect to analyzer and output
+            audio_objs["respones_MES"].connect(analyzers["machine"]);
+            audio_objs["respones_MES"].connect(audio_objs["context"].destination);
+    
+            drawFrame();
+
+        });
     }
 
     var soundNotAllowed = function (error) {

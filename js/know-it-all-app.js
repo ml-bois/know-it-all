@@ -23,16 +23,24 @@ var params = {
     // output samplerate
     "out_hz": 16000,
 
+    "prop": 1.0,
+
     "arc_color":     "rgb(  0,     0, 205)",
     "user_color":    "rgb(  0,   205,   0)",
-    "machine_color": "rgb(205,     0,   0)"
+    "machine_color": "rgb(205,     0,   0)",
+    "inactive_color":"rgb(70, 70, 70)"
 }
 
+// backend information
+var BACKEND_IP = "35.203.146.203";
+var BACKEND_PORT = "7878";
 
 var started_recording = new Date();
 
 var mem = {
     "recording": false,
+    "waiting_response": false,
+    "playing_response": false
 };
 
 // radii of circles
@@ -94,7 +102,38 @@ function transformVal (val) {
 }
 
 
+function drawLine(p0, p1, thickness, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = thickness;
+
+    ctx.beginPath();
+    //start
+    ctx.moveTo(p0[0], p0[1]);
+    //end
+    ctx.lineTo(p1[0], p1[1]);
+    ctx.stroke();
+}
+
+// calculates line from bar
+function calcBar(center, idx, start_rad, end_rad, val) {
+    var rads = 2 * Math.PI * (0.25 + idx / params["bars"]);
+
+    var cosr = Math.cos(rads), sinr = Math.sin(rads);
+
+    val = transformVal(val);
+
+    // difference
+    var d_rad = start_rad + (end_rad - start_rad) * val;
+
+    return [
+        [center[0]+start_rad*cosr, center[1]+start_rad*sinr], 
+        [center[0]+d_rad*cosr, center[1]+d_rad*sinr]
+    ];
+}
+
+
 // draws single bar with a circular center, index (out of params.bars), min radius, to max radius, value (from 0 to 1) and a color
+
 function drawBar(center, idx, start_rad, end_rad, val, line_color) {
     var lineColor = "rgb(0, 0, 205)";
     
@@ -109,6 +148,13 @@ function drawBar(center, idx, start_rad, end_rad, val, line_color) {
     // difference
     var d_rad = start_rad + (end_rad - start_rad) * val;
 
+    drawLine(
+        [center[0]+start_rad*cosr, center[1]+start_rad*sinr], 
+        [center[0]+d_rad*cosr, center[1]+d_rad*sinr], 
+        2, line_color
+    );
+
+    /*
     ctx.strokeStyle = line_color;
     ctx.lineWidth = 2;
 
@@ -118,6 +164,8 @@ function drawBar(center, idx, start_rad, end_rad, val, line_color) {
     //end
     ctx.lineTo(center[0] + d_rad * cosr,   center[1] +  d_rad * sinr  );
     ctx.stroke();
+
+    */
 }
 
 
@@ -129,6 +177,7 @@ function drawFrame() {
     //console.log(audio_objs["silence_detector"].is_loud);
 
     //console.log("drawing frame...");
+
 
     analyzers["user"].getByteFrequencyData(freq_data["user"]);
     analyzers["machine"].getByteFrequencyData(freq_data["machine"]);
@@ -161,13 +210,32 @@ function drawFrame() {
         ctx.drawImage(params["background"], canvas.width / 2 - adj_width / 2, canvas.height / 2- adj_width / 2, adj_width, adj_width);
     }
 
+    user_bars = []
+    machine_bars = []
+
+    var offset = 8;
+
     // draw radial frequency bars
-    for (var i = 0; i < params["bars"]; ++i) {
+    for (var i = offset; i < params["bars"] + offset; ++i) {
         // draw user
-        drawBar([c_x, c_y], i, radii["main"], radii["user"], freq_data["user"][i] / 255.0, params["user_color"]);
+        //drawBar([c_x, c_y], i, radii["main"], radii["user"], freq_data["user"][i] / 255.0, params["user_color"]);
+        user_bars.push(calcBar([c_x, c_y], i - offset, radii["main"], radii["user"], (0.5 + 0.5 * params["prop"]) * freq_data["user"][i] / 255.0));
 
         // draw machine
-        drawBar([c_x, c_y], i, radii["main"], radii["machine"], freq_data["machine"][i] / 255.0, params["machine_color"]);
+        //drawBar([c_x, c_y], i, radii["main"], radii["machine"], freq_data["machine"][i] / 255.0, params["machine_color"]);
+        machine_bars.push(calcBar([c_x, c_y], i - offset, radii["main"], radii["machine"], freq_data["machine"][i] / 255.0));
+
+    }
+
+    var is_act = !mem["playing_response"] && !mem["waiting_response"];
+
+    for (var i = 0; i < params["bars"]; ++i) {
+        drawLine(user_bars[i][0], user_bars[i][1], 2, params[is_act ? "user_color" : "inactive_color"]);
+        drawLine(machine_bars[i][0], machine_bars[i][1], 2, params["machine_color"]);
+
+        var ni = (i + 1) % params["bars"];
+
+        drawLine(user_bars[i][1], user_bars[ni][1], 1, params["user_color"]);
     }
 
     // draw the arc/inner circle
@@ -177,9 +245,19 @@ function drawFrame() {
     ctx.beginPath();
     ctx.arc(c_x, c_y, radii["main"], 0, 2 * Math.PI);
     ctx.stroke();
-
 }
 
+
+function sendNotif(msg, color, dur) {
+
+    $('#maincode').html(msg);
+    $('#maincode').css('color', color);
+    if (dur < 0) {
+        $('#maincode').fadeIn(300);
+    } else {
+        $('#maincode').fadeIn(300).delay(dur * 1000).fadeOut(1000);
+    }
+}
 
 window.onload = function () {
 
@@ -187,6 +265,8 @@ window.onload = function () {
     canvas = $('#renderer')[0];
     
     var baseurl = $('#__baseurl').attr('class');
+
+  //  $('#maincode').fadeTo(0, 0);
 
     var bkg_img = new Image();
     //background.src = "/know-it-all/favicon.png";  
@@ -196,6 +276,8 @@ window.onload = function () {
         // only do background once loaded
         params["background"] = bkg_img;
     }
+
+    sendNotif("online", "green", 2.0);
 
     // global var
     ctx = canvas.getContext('2d');
@@ -216,29 +298,50 @@ window.onload = function () {
         analyzers["machine"] = audio_objs["context"].createAnalyser();
         analyzers["machine"].fftSize = freq_data["N"];
 
+        var _ss = audio_objs["stream_source"];
+        audio_objs["stream_source"] = audio_objs["context"].createGain();
+        _ss.connect(audio_objs["stream_source"]);
         audio_objs["stream_source"].connect(analyzers["user"]);
 
+        audio_objs["stream_source"].gain.setValueAtTime(1, audio_objs["context"].currentTime);
+
         audio_objs["context"].audioWorklet.addModule(baseurl + '/js/silence-detector.js').then(function() { 
+            
             audio_objs["silence_detector"] = new AudioWorkletNode(audio_objs["context"], 'silence-detector', {
+                outputChannelCount:[1],
+                samples: params["audio_bsize"]
+            });
+            
+            audio_objs["machine_silence_detector"] = new AudioWorkletNode(audio_objs["context"], 'silence-detector', {
                 outputChannelCount:[1],
                 samples: params["audio_bsize"]
             });
 
             // this data will tell us whether or not to record or stop
             audio_objs["silence_detector"].port.onmessage = function (e) {
+                var goal = (mem["playing_response"] || mem["waiting_response"]) ? 0.0 : 1.0;//e.data["is_loud"] ? 0.0 : 1.0;
+                var amt = 0.015;
+                params["prop"] = goal * amt + params["prop"] * (1 - amt);
                 if (audio_objs["recorder"].state == "inactive") {
-                    if (e.data["is_loud"]) {
+                    if (e.data["is_loud"] && !mem["waiting_response"] && !mem["playing_response"]) {
                         audio_objs["recorder"].start();
                     } else {
                         return;
                     }
-                } else if (!e.data["is_loud"] && e.data["confidence"] < 0.32) {
+                } else if (!e.data["is_loud"] && e.data["confidence"] < 0.5) {
                     audio_objs["recorder"].stop();
                 } 
             };
 
+            // this data will tell us whether or not to record or stop
+            audio_objs["machine_silence_detector"].port.onmessage = function (e) {
+                console.log(e.data["confidence"]);
+            };
+
             audio_objs["stream_source"].connect(audio_objs["silence_detector"]);
             audio_objs["silence_detector"].connect(audio_objs["context"].destination);
+
+            audio_objs[""]
 
             audio_objs["recorder"] = new MediaRecorder(audio_objs["stream_handle"], {
                 'audioBitsPerSecond': 128000,
@@ -251,11 +354,14 @@ window.onload = function () {
             audio_objs["recorder"].addEventListener("start", () => {
                 audio_objs["recorded_chunks"] = []
                 started_recording = new Date();
+
+                console.log("started recording");
+
                 setTimeout(function() {
                     if (audio_objs["recorder"].state != 'inactive') {
                         audio_objs["recorder"].stop();
                     }
-                }, 15000);
+                }, 12000);
             });
     
             // add function for when new data comes in
@@ -266,7 +372,8 @@ window.onload = function () {
             // add function for when it is stopped
             audio_objs["recorder"].addEventListener("stop", () => {
                 var time_elapsed = new Date() - started_recording;
-
+                
+                console.log("stopped recording");
                 // at least 1 second
                 if (time_elapsed < 1000) return;
 
@@ -275,24 +382,81 @@ window.onload = function () {
                 if (audio_objs["recorded_chunks"].length == 1 && audio_objs["recorded_chunks"][0].size < 10000) return;
 
                 const _blob = new Blob(audio_objs["recorded_chunks"]);
-
-                console.log(audio_objs["recorded_chunks"]);
                 const _audio_url = URL.createObjectURL(_blob);
-        
-                //const audio = new Audio(_audio_url);
-                //audio.play();
 
-                //audio_objs["response_audio"] = new Audio("/example.wav");
-                audio_objs["response_audio"] = new Audio(_audio_url);
-                audio_objs["response_audio"].play();
-        
-                //media element source
-                audio_objs["response_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
-        
-                // connect to analyzer and output
-                audio_objs["response_MES"].connect(analyzers["machine"]);
-                audio_objs["response_MES"].connect(audio_objs["context"].destination);
-        
+                //saveAs(_blob, 'out.ogg');
+
+                var reader = new FileReader();
+                reader.readAsDataURL(_blob); 
+
+                reader.onloadend = function() {
+                    //console.log("decoded...");
+                    var base64data = reader.result;                
+                    //console.log(base64data);
+
+                    mem["waiting_response"] = true;
+                    console.log("send request to backend...");
+
+
+                    var c_dots = 3;
+
+                    function dop() {
+                        c_dots = (c_dots + 1) % 3;
+                        if (!mem["waiting_response"]) return;
+
+                        if (c_dots == 0) {
+                            sendNotif("Thinking .    ", 'gray', -1.0);
+                        } else if (c_dots == 1) {
+                            sendNotif("Thinking . .  ", 'gray', -1.0);
+                        } else {
+                            sendNotif("Thinking . . .", 'gray', -1.0);
+                        }
+
+                        setTimeout(dop, 1500);
+                    }
+
+                    dop();
+
+
+                    // REQUEST
+                    $.post(
+                        "http://" + BACKEND_IP + ":" + BACKEND_PORT + "/data/speech2speech", 
+                        base64data, 
+                        function(data){
+                            //console.log(data);
+                            //var decoded_result = data["b64"];   
+                            sendNotif("Speaking...", 'green', 6);
+                            mem["waiting_response"] = false;
+                            console.log("received from backend! now playing response...");
+
+
+                            var res = "data:audio/ogg;base64," + data;
+
+                            //audio_objs["response_audio"] = new Audio("/example.wav");
+                            audio_objs["response_audio"] = new Audio(res);
+                            audio_objs["response_audio"].play();
+
+                            mem["playing_response"] = true;
+
+                            audio_objs["response_audio"].onended = function() {
+                                console.log("done playing response (was " + audio_objs["response_audio"].duration + "s)");
+                                mem["playing_response"] = false;
+                            }
+                   
+                            //media element source
+                            audio_objs["response_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
+                    
+                            // connect to analyzer and output
+                            audio_objs["response_MES"].connect(analyzers["machine"]);
+                            audio_objs["response_MES"].connect(audio_objs["machine_silence_detector"]);
+                            audio_objs["response_MES"].connect(audio_objs["context"].destination);
+                        }
+                    ).fail(function(xhr, status, error) {
+                        console.error("While doing backend request: " + xhr["responseText"]);
+                        mem["waiting_response"] = false;
+                        sendNotif("Error From Backend" + xhr["responseText"] , 'red', 4.0);
+                    });
+                }
             });
     
             // start recording
@@ -302,13 +466,7 @@ window.onload = function () {
             freq_data["user"] = new Uint8Array(analyzers["user"].frequencyBinCount);
             freq_data["machine"] = new Uint8Array(analyzers["machine"].frequencyBinCount);
     
-            // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
-            //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
-
-           // setTimeout(function() { audio_objs["recorder"].stop(); }, 3000);
-        
             drawFrame();
-
         });
     }
 
@@ -318,7 +476,7 @@ window.onload = function () {
 
     console.log("on load");
 
-    navigator.mediaDevices.getUserMedia({ audio:true }).then(soundAllowed).catch(soundNotAllowed);
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(soundAllowed).catch(soundNotAllowed);
     //navigator.getUserMedia({ audio:true }, soundAllowed, soundNotAllowed);
 };
 

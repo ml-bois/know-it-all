@@ -1,7 +1,7 @@
 
 
 var __idx = 0;
-var __decay_fac = 0.35;
+var __decay_fac = 0.233;
 
 class SilenceDetector extends AudioWorkletProcessor {
     constructor() {

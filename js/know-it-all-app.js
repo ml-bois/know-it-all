@@ -57,7 +57,8 @@ var audio_objs = {
     "recorded_chunks": [],
 
     // can be undefined at runtime if there's not a chunk of audio!
-    "response_audio": undefined
+    "response_audio": undefined,
+    "response_MES": undefined
 };
 
 // current recording envelope
@@ -263,8 +264,20 @@ window.onload = function () {
 
                 const _blob = new Blob(audio_objs["recorded_chunks"]);
                 const _audio_url = URL.createObjectURL(_blob);
-                const audio = new Audio(_audio_url);
-                audio.play();
+                //const audio = new Audio(_audio_url);
+                //audio.play();
+
+                //audio_objs["response_audio"] = new Audio("/example.wav");
+                audio_objs["response_audio"] = new Audio(_audio_url);
+                audio_objs["response_audio"].play();
+        
+                //media element source
+                audio_objs["response_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
+        
+                // connect to analyzer and output
+                audio_objs["response_MES"].connect(analyzers["machine"]);
+                audio_objs["response_MES"].connect(audio_objs["context"].destination);
+        
             });
     
             // start recording
@@ -276,16 +289,8 @@ window.onload = function () {
     
             // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
             //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
-            //audio_objs["response_audio"] = new Audio("/example.wav");
-            //audio_objs["response_audio"].play();
-    
-            //media element source
-            audio_objs["respones_MES"] = audio_objs["context"].createMediaElementSource(audio_objs["response_audio"]);
-    
-            // connect to analyzer and output
-            audio_objs["respones_MES"].connect(analyzers["machine"]);
-            audio_objs["respones_MES"].connect(audio_objs["context"].destination);
-    
+        
+
             drawFrame();
 
         });

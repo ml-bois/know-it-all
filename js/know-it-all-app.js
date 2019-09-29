@@ -182,9 +182,11 @@ window.onload = function () {
     canvas_div = $('#renderer_div');
     canvas = $('#renderer')[0];
     
+    var baseurl = $('#__baseurl').attr('class');
+
     var bkg_img = new Image();
     //background.src = "/know-it-all/favicon.png";  
-    bkg_img.src = $('#__baseurl').attr('class') + "/favicon.png";
+    bkg_img.src = baseurl + "/favicon.png";
 
     bkg_img.onload = function() {
         // only do background once loaded
@@ -212,7 +214,7 @@ window.onload = function () {
 
         audio_objs["stream_source"].connect(analyzers["user"]);
 
-        audio_objs["context"].audioWorklet.addModule('/js/silence-detector.js').then(function() { 
+        audio_objs["context"].audioWorklet.addModule(baseurl + '/js/silence-detector.js').then(function() { 
             audio_objs["silence_detector"] = new AudioWorkletNode(audio_objs["context"], 'silence-detector', {
                 outputChannelCount:[1],
                 samples: params["audio_bsize"]
@@ -251,8 +253,6 @@ window.onload = function () {
     
             // add function for when it is stopped
             audio_objs["recorder"].addEventListener("stop", () => {
-                //console.log(audio_objs["recorded_chunks"]);
-
                 var time_elapsed = new Date() - started_recording;
 
                 // at least 1 second
@@ -290,7 +290,6 @@ window.onload = function () {
             // for base64 var snd = new Audio("data:audio/wav;base64," + base64string);
             //audio_objs["response_audio"] = new Audio("data:audio/mp3;base64," + base64string);
         
-
             drawFrame();
 
         });
